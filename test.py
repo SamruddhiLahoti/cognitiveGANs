@@ -11,8 +11,7 @@ import torch
 import assessors
 import generators
 import transformations.pytorch as transformations
-import utils.common
-import utils.pytorch
+import utils
 
 # Collect command line arguments
 # --------------------------------------------------------------------------------------------------------------
@@ -151,7 +150,7 @@ def make_image(z, y, step_size, transform):
         z_transformed = z.norm() * z_transformed / z_transformed.norm()
         z = z_transformed
 
-    gan_images = utils.pytorch.denorm(generator(z, y))
+    gan_images = utils.denorm(generator(z, y))
     gan_images_np = gan_images.permute(0, 2, 3, 1).detach().cpu().numpy()
     gan_images = input_transform(gan_images)
     gan_images = gan_images.view(-1, *gan_images.shape[-3:])
@@ -182,11 +181,11 @@ for y in range(num_categories):
     ims = []
     outscores = []
 
-    zs = utils.common.truncated_z_sample(num_samples, dim_z, truncation)
+    zs = utils.truncated_z_sample(num_samples, dim_z, truncation)
     ys = np.repeat(y, num_samples)
     zs = torch.from_numpy(zs).type(torch.FloatTensor).to(device)
     ys = torch.from_numpy(ys).to(device)
-    ys = utils.pytorch.one_hot(ys, vocab_size)
+    ys = utils.one_hot(ys, vocab_size)
     step_sizes = np.repeat(np.array(opts["alpha"]), num_samples * dim_z).reshape([num_samples, dim_z])
     step_sizes = torch.from_numpy(step_sizes).type(torch.FloatTensor).to(device)
     feed_dicts = []
@@ -207,10 +206,10 @@ for y in range(num_categories):
             x, tmp, outscore = make_image(feed_dict["z"], feed_dict["y"], feed_dict["step_sizes"], transform=False)
             x = np.uint8(x)
             if annotate:
-                ims_batch.append(utils.common.annotate_outscore(x, outscore))
+                ims_batch.append(utils..annotate_outscore(x, outscore))
             else:
                 if annotate:
-                    ims_batch.append(utils.common.annotate_outscore(x, outscore))
+                    ims_batch.append(utils..annotate_outscore(x, outscore))
                 else:
                     ims_batch.append(x)
             outscores_batch.append(outscore)
@@ -225,10 +224,10 @@ for y in range(num_categories):
                 x = np.uint8(x)
                 z_next = tmp
                 if annotate:
-                    ims_batch.append(utils.common.annotate_outscore(x, outscore))
+                    ims_batch.append(utils..annotate_outscore(x, outscore))
                 else:
                     if annotate:
-                        ims_batch.append(utils.common.annotate_outscore(x, outscore))
+                        ims_batch.append(utils..annotate_outscore(x, outscore))
                     else:
                         ims_batch.append(x)
                 outscores_batch.append(outscore)
@@ -247,7 +246,7 @@ for y in range(num_categories):
                 z_next = tmp
 
                 if annotate:
-                    ims_batch.append(utils.common.annotate_outscore(x, outscore))
+                    ims_batch.append(utils..annotate_outscore(x, outscore))
                 else:
                     ims_batch.append(x)
                 outscores_batch.append(outscore)
@@ -259,7 +258,7 @@ for y in range(num_categories):
             x, tmp, outscore = make_image(feed_dict["z"], feed_dict["y"], feed_dict["step_sizes"], transform=False)
             x = np.uint8(x)
             if annotate:
-                ims_batch.append(utils.common.annotate_outscore(x, outscore))
+                ims_batch.append(utils..annotate_outscore(x, outscore))
             else:
                 ims_batch.append(x)
             outscores_batch.append(outscore)
@@ -273,7 +272,7 @@ for y in range(num_categories):
                 x = np.uint8(x)
 
                 if annotate:
-                    ims_batch.append(utils.common.annotate_outscore(x, outscore))
+                    ims_batch.append(utils..annotate_outscore(x, outscore))
                 else:
                     ims_batch.append(x)
                 outscores_batch.append(outscore)
@@ -289,7 +288,7 @@ for y in range(num_categories):
                 x, tmp, outscore = make_image(feed_dict["z"], feed_dict["y"], feed_dict["step_sizes"], transform=True)
                 x = np.uint8(x)
                 if annotate:
-                    ims_batch.append(utils.common.annotate_outscore(x, outscore))
+                    ims_batch.append(utils..annotate_outscore(x, outscore))
                 else:
                     ims_batch.append(x)
                 outscores_batch.append(outscore)
@@ -307,6 +306,6 @@ for y in range(num_categories):
     ims = np.concatenate(ims, axis=0)
     outscores = np.concatenate(outscores, axis=0)
     ims_final = np.reshape(ims, (ims.shape[0] * ims.shape[1], ims.shape[2], ims.shape[3], ims.shape[4]))
-    I = PIL.Image.fromarray(utils.common.imgrid(ims_final, cols=iters * 2 + 1))
+    I = PIL.Image.fromarray(utils..imgrid(ims_final, cols=iters * 2 + 1))
     I.save(os.path.join(result_dir, categories[y] + ".jpg"))
     print("y: ", y)

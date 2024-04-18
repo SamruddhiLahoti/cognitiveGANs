@@ -1,8 +1,17 @@
+import torch
 import numpy as np
 from scipy.stats import truncnorm
 import PIL.ImageDraw
 import PIL.ImageFont
 
+def one_hot(index, vocab_size=1000):
+    output = torch.zeros(index.size(0), vocab_size).to(index.device)
+    output.scatter_(1, index.unsqueeze(-1), 1)
+    return output
+
+def denorm(x):
+    out = (x + 1) / 2
+    return out.clamp_(0, 1) * 255
 
 def truncated_z_sample(batch_size, dim_z, truncation=1):
     values = truncnorm.rvs(-2, 2, size=(batch_size, dim_z))
@@ -37,7 +46,7 @@ def annotate_outscore(array, outscore):
     for i in range(array.shape[0]):
         I = PIL.Image.fromarray(np.uint8(array[i,:,:,:]))
         draw = PIL.ImageDraw.Draw(I)
-        font =  PIL.ImageFont.truetype("./utils/arial.ttf", int(array.shape[1]/8.5))
+        font =  PIL.ImageFont.truetype("arial.ttf", int(array.shape[1]/8.5))
         message = str(round(np.squeeze(outscore)[i], 2))
         x, y = (0, 0)
         w, h = font.getsize(message)
@@ -46,28 +55,3 @@ def annotate_outscore(array, outscore):
         draw.text((x, y), message, fill="black", font=font)
         array[i, :, :, :] = np.array(I)
     return(array)
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
-    def __init__(self, name, fmt=':f'):
-        self.name = name
-        self.fmt = fmt
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
-    def __str__(self):
-        fmtstr = '{name} {val' + self.fmt + '} ({avg' + self.fmt + '})'
-        return fmtstr.format(**self.__dict__)
