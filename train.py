@@ -64,15 +64,13 @@ def update_model_state(model_state, state_dict_path, fine_tuning=False):
 
 def main(args):
 
-    print("In main")
-
     # Choose GPU
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     os.makedirs(args.results_dir, exist_ok=True)  # Make results folder (holds all experiment subfolders)
     experiment_index = len(glob(f"{args.results_dir}/*"))
 
-    model_string_name = "-".join([str(args.generator_pixels), args.assessor, args.transformer])
+    model_string_name = "-".join([f"biggan{args.generator_pixels}", args.assessor, args.transformer])
     experiment_dir = f"{args.results_dir}/{experiment_index:03d}-{model_string_name}"  # Create an experiment folder
     checkpoint_dir = f"{experiment_dir}/checkpoints"  # Stores saved model checkpoints
     os.makedirs(checkpoint_dir, exist_ok=True)
@@ -110,7 +108,8 @@ def main(args):
 
     # Setting up Assessor
     # --------------------------------------------------------------------------------------------------------------
-    assessor_elements = emonet(True)
+    parameters = torch.load("saved_models/EmoNet_valence_moments_resnet50_5_best.pth.tar", map_location='cpu')
+    assessor_elements = emonet(True, parameters)
     if isinstance(assessor_elements, tuple):
         assessor = assessor_elements[0]
         input_transform = assessor_elements[1]
@@ -127,8 +126,8 @@ def main(args):
     if hasattr(assessor, 'parameters'):
         for p in assessor.parameters():
             p.requires_grad = False
-            assessor.eval()
-            assessor.to(device)
+    assessor.eval()
+    assessor.to(device)
 
     # Training
     # --------------------------------------------------------------------------------------------------------------

@@ -24,9 +24,8 @@ class EmoNet(torch.nn.Module):
     def input_size(self):
         return [3, 224, 224]
 
-def emonet(tencrop):
+def emonet(tencrop, parameters):
     model = EmoNet()
-    parameters = torch.load("../saved_models/EmoNet_valence_moments_resnet50_5_best.pth.tar", map_location='cpu')
     state_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(parameters['state_dict'].items())}
     state_dict["model.fc.weight"] = state_dict.pop("model.last_linear.weight")
     state_dict["model.fc.bias"] = state_dict.pop("model.last_linear.bias")
