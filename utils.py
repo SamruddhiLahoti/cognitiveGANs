@@ -1,5 +1,8 @@
 import torch
 import numpy as np
+import logging
+import os
+
 from scipy.stats import truncnorm
 import PIL.ImageDraw
 import PIL.ImageFont
@@ -55,3 +58,52 @@ def annotate_outscore(array, outscore):
         draw.text((x, y), message, fill="black", font=font)
         array[i, :, :, :] = np.array(I)
     return(array)
+
+def update_model_state(model_state, state_dict_path, fine_tuning=False):
+
+    pretrained_state = torch.load(state_dict_path, map_location=lambda storage, loc: storage)
+    ckpt_steps = 0
+
+    if fine_tuning:
+        opt_state = None
+    else:
+        opt_state = pretrained_state["opt"]
+        pretrained_state = pretrained_state["model"]
+
+        path = state_dict_path.split(os.sep)[-1].split("-")
+        ckpt_steps = int(path[-1][0:-3])
+
+    for name, param in pretrained_state.items():
+        if name not in model_state:
+                continue
+        elif isinstance(param, torch.nn.parameter.Parameter):
+            param = param.data
+
+        if fine_tuning:
+            '''
+                Load all weights but AdaLN; 
+                Freeze all weights but Bias and LayerNorm
+            '''
+            if "adaLN" not in name:
+                model_state[name].copy_(param)
+            if "bias" not in name or "adaLN" not in name:
+                model_state[name].requires_grad = False
+        else:
+            model_state[name].copy_(param)
+    
+    return model_state, opt_state, ckpt_steps
+
+
+def create_logger(logging_dir):
+    """
+    Create a logger that writes to a log file and stdout.
+    """
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[\033[34m%(asctime)s\033[0m] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        handlers=[logging.StreamHandler(), logging.FileHandler(f"{logging_dir}/log.txt")]
+    )
+    logger = logging.getLogger(__name__)
+    
+    return logger

@@ -1,6 +1,5 @@
 import argparse
 import os
-import logging
 from glob import glob
 
 import numpy as np
@@ -12,71 +11,15 @@ from models.biggan import Generator
 from models.emonet import emonet
 
 
-def create_logger(logging_dir):
-    """
-    Create a logger that writes to a log file and stdout.
-    """
-    logging.basicConfig(
-        level=logging.INFO,
-        format='[\033[34m%(asctime)s\033[0m] %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S',
-        handlers=[logging.StreamHandler(), logging.FileHandler(f"{logging_dir}/log.txt")]
-    )
-    logger = logging.getLogger(__name__)
-    
-    return logger
-
-
-def update_model_state(model_state, state_dict_path, fine_tuning=False):
-
-    pretrained_state = torch.load(state_dict_path, map_location=lambda storage, loc: storage)
-    ckpt_steps = 0
-
-    if fine_tuning:
-        opt_state = None
-    else:
-        opt_state = pretrained_state["opt"]
-        pretrained_state = pretrained_state["model"]
-
-        path = state_dict_path.split(os.sep)
-        ckpt_steps = int(path[-1][0:-3])
-
-    for name, param in pretrained_state.items():
-        if name not in model_state:
-                continue
-        elif isinstance(param, torch.nn.parameter.Parameter):
-            param = param.data
-
-        if fine_tuning:
-            '''
-                Load all weights but AdaLN; 
-                Freeze all weights but Bias and LayerNorm
-            '''
-            if "adaLN" not in name:
-                model_state[name].copy_(param)
-            if "bias" not in name or "adaLN" not in name:
-                model_state[name].requires_grad = False
-        else:
-            model_state[name].copy_(param)
-    
-    return model_state, opt_state, ckpt_steps
-
-
 def main(args):
 
     # Choose GPU
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    os.makedirs(args.results_dir, exist_ok=True)  # Make results folder (holds all experiment subfolders)
-    experiment_index = len(glob(f"{args.results_dir}/*"))
+    os.makedirs(args.log_dir, exist_ok=True)  # Make results folder (holds all experiment subfolders)
+    os.makedirs(args.checkpoint_dir, exist_ok=True)
 
-    model_string_name = "-".join([f"biggan{args.generator_pixels}", args.assessor, args.transformer])
-    experiment_dir = f"{args.results_dir}/{experiment_index:03d}-{model_string_name}"  # Create an experiment folder
-    checkpoint_dir = f"{experiment_dir}/checkpoints"  # Stores saved model checkpoints
-    os.makedirs(checkpoint_dir, exist_ok=True)
-
-    logger = create_logger(experiment_dir)
-    logger.info(f"Experiment directory created at {experiment_dir}")
+    logger = utils.create_logger(args.log_dir)
 
     # Some characteristics
     # --------------------------------------------------------------------------------------------------------------
@@ -90,9 +33,8 @@ def main(args):
 
     # Setting up Transformer
     # --------------------------------------------------------------------------------------------------------------
-    transformer = args.transformer
 
-    model = Transformer(dim_z, transformer == "OneDirection")
+    model = Transformer(dim_z, args.transformer == "OneDirection")
     model = model.to(device)
 
     # Setting up Generator
@@ -139,7 +81,7 @@ def main(args):
     if args.ckpt is not None:
         assert os.path.isfile(args.ckpt), f'Could not find DiT checkpoint at {args.ckpt}'
         
-        model_state, opt_state, ckpt_steps = update_model_state(model.state_dict(), args.ckpt, fine_tuning=args.fine_tuning)
+        model_state, opt_state, ckpt_steps = utils.update_model_state(model.state_dict(), args.ckpt, fine_tuning=args.fine_tuning)
         model.load_state_dict(model_state)
 
         print("Model Checkpoint loaded successfully")
@@ -155,6 +97,7 @@ def main(args):
     ys = np.random.randint(0, vocab_size, size=zs.shape[0])
 
     logger.info("Starting training")
+    save_path = f"{args.checkpoint_dir}/biggan{args.generator_pixels}-{args.assessor}"
 
     # loop over data batches
     for batch_start in range(0, args.num_samples, batch_size):
@@ -204,7 +147,7 @@ def main(args):
                 "opt": optimizer.state_dict(),
                 "args": args
             }
-            checkpoint_path = f"{checkpoint_dir}/{(train_steps + ckpt_steps):07d}.pt"
+            checkpoint_path = f"{save_path}-{(train_steps + ckpt_steps):07d}.pth"
             torch.save(checkpoint, checkpoint_path)
             logger.info(f"Saved checkpoint to {checkpoint_path}")
 
@@ -215,7 +158,7 @@ def main(args):
         "opt": optimizer.state_dict(),
         "args": args
     }
-    checkpoint_path = f"{checkpoint_dir}/{(train_steps + ckpt_steps):07d}.pt"
+    checkpoint_path = f"{save_path}-{(train_steps + ckpt_steps):07d}.pth"
     torch.save(checkpoint, checkpoint_path)
     logger.info(f"Saved checkpoint to {checkpoint_path}")
 
@@ -223,8 +166,9 @@ if __name__ == "__main__":
     # Collect command line arguments
     # --------------------------------------------------------------------------------------------------------------
     parser = argparse.ArgumentParser()
-    parser.add_argument('--results-dir', type=str, default="results", help='directory to store model results')
-    parser.add_argument('--num-samples', type=int, default="400000", help='number of samples to train for')
+    parser.add_argument('--log-dir', type=str, default="log", help='directory for the log file')
+    parser.add_argument('--checkpoint_dir', type=str, default="saved_models", help='directory to save model ckpt')
+    parser.add_argument('--num-samples', type=int, default=400000, help='number of samples to train for')
     parser.add_argument("--ckpt", type=str, default=None)
     parser.add_argument('--train-alpha-a', type=float, default=-0.5, help='lower limit for step sizes to use during training')
     parser.add_argument('--train-alpha-b', type=float, default=0.5, help='upper limit for step sizes to use during training')

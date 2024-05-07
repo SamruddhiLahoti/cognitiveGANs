@@ -1,0 +1,6 @@
+[[34m2024-05-06 14:30:05[0m] Starting training
+[[34m2024-05-06 14:30:25[0m] Saved checkpoint to saved_models/biggan256-emonet-0000000.pt
+[[34m2024-05-06 14:30:25[0m] Saved checkpoint to saved_models/0000001.pt
+[[34m2024-05-06 14:30:37[0m] Starting training
+[[34m2024-05-06 14:30:54[0m] Saved checkpoint to saved_models/biggan256-emonet-0000000.pt
+[[34m2024-05-06 14:30:54[0m] Saved checkpoint to saved_models/biggan256-emonet-0000001.pt
