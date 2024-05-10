@@ -59,7 +59,7 @@ def annotate_outscore(array, outscore):
         array[i, :, :, :] = np.array(I)
     return(array)
 
-def update_model_state(model_state, state_dict_path, fine_tuning=False):
+def update_model_state(model_state, state_dict_path, fine_tuning=False, testing=False):
 
     pretrained_state = torch.load(state_dict_path, map_location=lambda storage, loc: storage)
     ckpt_steps = 0
@@ -69,9 +69,10 @@ def update_model_state(model_state, state_dict_path, fine_tuning=False):
     else:
         opt_state = pretrained_state["opt"]
         pretrained_state = pretrained_state["model"]
-
-        path = state_dict_path.split(os.sep)[-1].split("-")
-        ckpt_steps = int(path[-1][0:-3])
+        
+        if not testing:
+            path = state_dict_path.split(os.sep)[-1].split("-")
+            ckpt_steps = int(path[-1][0:-3])
 
     for name, param in pretrained_state.items():
         if name not in model_state:

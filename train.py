@@ -167,7 +167,7 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------------------------------------------------
     parser = argparse.ArgumentParser()
     parser.add_argument('--log-dir', type=str, default="log", help='directory for the log file')
-    parser.add_argument('--checkpoint_dir', type=str, default="saved_models", help='directory to save model ckpt')
+    parser.add_argument('--checkpoint-dir', type=str, default="saved_models", help='directory to save model ckpt')
     parser.add_argument('--num-samples', type=int, default=400000, help='number of samples to train for')
     parser.add_argument("--ckpt", type=str, default=None)
     parser.add_argument('--train-alpha-a', type=float, default=-0.5, help='lower limit for step sizes to use during training')

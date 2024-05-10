@@ -3,3 +3,4 @@
 **/results/
 **/tensorflow/
 **/.vscode/
+.DS_Store

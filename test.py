@@ -41,7 +41,7 @@ def main(args):
 
     assert os.path.isfile(args.ckpt), f'Could not find DiT checkpoint at {args.ckpt}'
     
-    model_state, _, _ = utils.update_model_state(model.state_dict(), args.ckpt)
+    model_state, _, _ = utils.update_model_state(model.state_dict(), args.ckpt, testing=True)
     model.load_state_dict(model_state)
     model.eval()
 
